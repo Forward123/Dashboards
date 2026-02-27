@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MU COM Longitudinal Dashboard: 2016-2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --chart-grid: #e2e8f0;
+            --header-accent: #1e293b;
+            --cycle-bg: #e2e8f0;
+            --cycle-text: #475569;
+            --summary-bg: #f8fafc;
+            --neon-green: #059669;
+            --neon-blue: #2563eb;
+        }
+
+        .dark-theme {
+            --bg-body: #020617;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #cbd5e1;
+            --border-color: #475569;
+            --chart-grid: #334155;
+            --header-accent: #4338ca;
+            --cycle-bg: rgba(51, 65, 85, 0.8);
+            --cycle-text: #34d399;
+            --summary-bg: rgba(30, 41, 59, 0.5);
+            --neon-green: #22c55e;
+            --neon-blue: #38bdf8;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-body); 
+            color: var(--text-main);
+            transition: all 0.3s ease;
+        }
+        
+        .card { 
+            background: var(--bg-card); 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-box {
+            background-color: var(--summary-bg);
+            border-left: 4px solid #3b82f6;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .highlight-green { color: var(--neon-green); font-weight: 800; }
+        .highlight-blue { color: var(--neon-blue); font-weight: 800; }
+
+        .kpi-card {
+            border-radius: 12px;
+            padding: 1.5rem;
+            color: white;
+            transition: transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 140px;
+        }
+        .kpi-amber { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }
+        .kpi-emerald { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
+        .kpi-blue { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }
+        .kpi-purple { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
+
+        .kpi-label { font-size: 0.875rem; font-weight: 600; opacity: 0.9; }
+        .kpi-value { font-size: 2rem; font-weight: 800; margin-top: 0.5rem; }
+        .kpi-footer { font-size: 0.75rem; font-weight: 700; margin-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 0.5rem; }
+
+        .stage-foundational { background-color: #1e293b; color: white; }
+        .stage-adaptive { background-color: #78350f; color: white; }
+        .stage-outcomes { background-color: #064e3b; color: white; }
+
+        .dark-theme .stage-foundational { background-color: #0f172a; border: 1px solid #1e293b; }
+        .dark-theme .stage-adaptive { background-color: #451a03; border: 1px solid #78350f; }
+        .dark-theme .stage-outcomes { background-color: #022c22; border: 1px solid #064e3b; }
+
+        .pipeline-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 14px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .pipeline-card:hover { 
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .bar-foundational { background-color: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+        .bar-adaptive { background-color: #fbbf24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.4); }
+        .bar-outcomes { background-color: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.4); }
+        .bar-track { background-color: rgba(0, 0, 0, 0.3); }
+
+        .era-btn { background-color: var(--border-color); color: var(--text-main); }
+        .active-era { background-color: #3b82f6 !important; color: white !important; }
+
+        .theme-toggle {
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 2px solid #3b82f6;
+        }
+
+        .review-header { background-color: var(--header-accent); color: white; transition: background-color 0.2s; }
+        .review-header:hover { background-color: #334155; }
+
+        .top-mark {
+            border: 1px solid rgba(251, 191, 36, 0.8) !important;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.15);
+            background: rgba(255, 255, 255, 0.15) !important;
+        }
+        
+        .medal-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #1e293b;
+            border: 1px solid #fbbf24;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            color: var(--text-main);
+            width: 90%; max-width: 600px; max-height: 80vh;
+            border-radius: 16px; overflow-y: auto; padding: 24px;
+        }
+
+        .cycle-badge {
+            background-color: var(--cycle-bg);
+            color: var(--cycle-text);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div id="cqiModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6 border-b pb-4 border-slate-200 dark:border-slate-700">
+                <h3 class="text-xl font-bold">M2 CQI Actions (AY2025-2026 Target)</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            <div class="space-y-4" id="cqiList"></div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-6 border-b pb-8 border-slate-200 dark:border-slate-700">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">MU COM Longitudinal Dashboard: 2016-2026</h1>
+                <p class="italic font-medium" style="color: var(--text-muted)">MU COM Strategic Academic Insights</p>
+            </div>
+            
+            <div class="flex flex-col gap-3 min-w-[320px]">
+                <div class="flex justify-end">
+                    <button onclick="toggleTheme()" class="theme-toggle bg-blue-600 text-white hover:bg-blue-700">
+                        <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+                    </button>
+                </div>
+                <button onclick="filterEra('All')" class="review-header px-4 py-2 rounded-t-lg text-center cursor-pointer block w-full">
+                    <span class="text-xs font-bold uppercase tracking-widest">The 10-Year Trends</span>
+                </button>
+                <div class="grid grid-cols-3 gap-1 bg-white dark:bg-slate-900 p-1 rounded-b-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                    <button onclick="filterEra('Foundational')" id="btn-Foundational" class="era-btn px-2 py-2 text-[9px] font-bold uppercase rounded leading-tight">Pre-COVID Era<br><span class="opacity-60">[2016-2019]</span></button>
+                    <button onclick="filterEra('Adaptive')" id="btn-Adaptive" class="era-btn px-2 py-2 text-[9px] font-bold uppercase rounded leading-tight">COVID Transition<br><span class="opacity-60">[2020-2022]</span></button>
+                    <button onclick="filterEra('Outcomes')" id="btn-Outcomes" class="era-btn px-2 py-2 text-[9px] font-bold uppercase rounded leading-tight">Post-COVID Recovery<br><span class="opacity-60">[2023-2026]</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="summary-box">
+            <h3 class="text-sm font-black uppercase tracking-widest text-blue-500 mb-2">Executive Summary</h3>
+            <p class="text-sm leading-relaxed">
+                As of the <span class="font-bold">2025-2026 Academic Cycle</span>, MU COM is trending toward a historic <span class="highlight-green">98% Board Pass Rate</span>. Post-COVID recovery efforts have yielded a <span class="highlight-blue">+6.5% Institutional Delta</span> over the national mean. 
+                The "Impact Nine" pipeline indicates peak performance driven by foundational excellence in <span class="italic">Physiology & Homeostasis I (M1)</span>, robust systems integration in <span class="italic">Integrative Systems II (M2)</span>, and superior clinical outcomes in <span class="italic">Emergency Medicine Sub-I (M4)</span>.
+            </p>
+        </div>
+
+        <!-- KPI Section -->
+        <div class="mb-8">
+            <h2 class="text-sm font-bold uppercase tracking-[0.2em] mb-4" style="color: var(--text-muted)">AY2025-2026 Performance & Projections: M2</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="kpi-card kpi-amber">
+                    <div><p class="kpi-label">Readiness Exam Mean</p><h3 class="kpi-value">91.5%</h3></div>
+                    <p class="kpi-footer">Critical Leading Indicator</p>
+                </div>
+                <div class="kpi-card kpi-emerald">
+                    <div><p class="kpi-label">Projected Board Pass</p><h3 class="kpi-value">98.0%</h3></div>
+                    <p class="kpi-footer">Peak Institutional Target</p>
+                </div>
+                <div class="kpi-card kpi-blue">
+                    <div><p class="kpi-label">Projected Institutional Delta</p><h3 class="kpi-value">+6.5%</h3></div>
+                    <p class="kpi-footer">MU COM Lead vs. Nat'l Mean</p>
+                </div>
+                <div onclick="openModal()" class="kpi-card kpi-purple cursor-pointer group">
+                    <div><div class="flex justify-between items-start"><p class="kpi-label">CQI Measures</p><span class="text-white group-hover:animate-bounce">🔍</span></div><h3 class="kpi-value">14</h3></div>
+                    <p class="kpi-footer underline decoration-dotted">Click for Action Log</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <div class="card p-6"><h2 class="text-xl font-bold mb-4">COMLEX Pass Rate Trend</h2><div class="h-80"><canvas id="anchorChart"></canvas></div></div>
+            <div class="card p-6">
+                <h2 class="text-xl font-bold mb-4">Institutional Value-Add Trend</h2>
+                <div class="h-80"><canvas id="deltaChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Impact Nine Pipeline -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold">"Impact Nine" Pipeline Courses</h2>
+                <span class="cycle-badge text-[11px] font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">Academic Cycle: 2025-2026</span>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-0 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
+                <!-- Foundational -->
+                <div class="stage-foundational p-6">
+                    <div class="flex items-center gap-2 mb-6">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-blue-200">Foundational (M1)</h3>
+                    </div>
+                    <div id="foundational-col" class="space-y-6"></div>
+                </div>
+                <!-- Adaptive -->
+                <div class="stage-adaptive p-6">
+                    <div class="flex items-center gap-2 mb-6">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-amber-200">Adaptive (M2-M3)</h3>
+                    </div>
+                    <div id="adaptive-col" class="space-y-6"></div>
+                </div>
+                <!-- Outcomes -->
+                <div class="stage-outcomes p-6">
+                    <div class="flex items-center gap-2 mb-6">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-emerald-200">Outcomes (M4)</h3>
+                    </div>
+                    <div id="outcomes-col" class="space-y-6"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const anchorData = [
+            { year: '2016', mocupass: 94.5, natl: 91.2, delta: 3.3 },
+            { year: '2017', mocupass: 95.1, natl: 90.8, delta: 4.3 },
+            { year: '2018', mocupass: 96.8, natl: 93.9, delta: 2.9 },
+            { year: '2019', mocupass: 95.5, natl: 91.8, delta: 3.7 },
+            { year: '2020', mocupass: 94.0, natl: 92.7, delta: 1.3 },
+            { year: '2021', mocupass: 93.5, natl: 92.2, delta: 1.3 },
+            { year: '2022', mocupass: 92.1, natl: 90.6, delta: 1.5 },
+            { year: '2023', mocupass: 94.2, natl: 90.0, delta: 4.2 },
+            { year: '2024', mocupass: 95.8, natl: 90.3, delta: 5.5 },
+            { year: '2025', mocupass: 97.2, natl: 91.1, delta: 6.1 },
+            { year: '2026', mocupass: 98.0, natl: 91.5, delta: 6.5 }
+        ];
+
+        const courseData = [
+            { name: 'Physiology & Homeostasis I', role: 'Foundational', year: 'M1', score: 91.2, rank: 1 },
+            { name: 'Clinical Anatomy & Imaging', role: 'Foundational', year: 'M1', score: 88.5, rank: 2 },
+            { name: 'Molecular Foundations', role: 'Foundational', year: 'M1', score: 87.9, rank: 3 },
+            { name: 'Integrative Systems II', role: 'Adaptive', year: 'M2', score: 93.4, rank: 1 },
+            { name: 'Host Defense & Micro', role: 'Adaptive', year: 'M2', score: 92.1, rank: 2 },
+            { name: 'Longitudinal Clinical Clerkship', role: 'Adaptive', year: 'M3', score: 91.8, rank: 3 },
+            { name: 'Emergency Medicine Sub-I', role: 'Outcomes', year: 'M4', score: 96.1, rank: 1 },
+            { name: 'Adv. Rural Medicine', role: 'Outcomes', year: 'M4', score: 95.4, rank: 2 },
+            { name: 'Pediatric Specialty Rotation', role: 'Outcomes', year: 'M4', score: 94.7, rank: 3 }
+        ];
+
+        const cqiActions = [
+            { category: "Curriculum", action: "AY2025-2026 Integrated Board Review" },
+            { category: "Support", action: "AI-Driven Academic Mentoring Launch" },
+            { category: "Assessment", action: "Adaptive Formative Assessment Implementation" },
+            { category: "Curriculum", action: "Enhanced OPP Lab integration" }
+        ];
+
+        let anchorChart, deltaChart, isDarkMode = false;
+        let currentEraFilter = 'All';
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-theme', isDarkMode);
+            document.getElementById('theme-icon').innerText = isDarkMode ? '☀️' : '🌙';
+            document.getElementById('theme-text').innerText = isDarkMode ? 'Light Mode' : 'Dark Mode';
+            initCharts(currentEraFilter);
+        }
+
+        function initCharts(filter = 'All') {
+            const ctx1 = document.getElementById('anchorChart').getContext('2d');
+            const ctx2 = document.getElementById('deltaChart').getContext('2d');
+            if (anchorChart) anchorChart.destroy();
+            if (deltaChart) deltaChart.destroy();
+
+            const textColor = isDarkMode ? '#f1f5f9' : '#1e293b';
+            const gridColor = isDarkMode ? '#334155' : '#e2e8f0';
+            const deltaColor = isDarkMode ? '#38bdf8' : '#2563eb';
+            const covidLineColor = isDarkMode ? '#fb7185' : '#e11d48';
+
+            let filteredData = [...anchorData];
+            if (filter === 'Foundational') filteredData = anchorData.filter(d => parseInt(d.year) <= 2019);
+            else if (filter === 'Adaptive') filteredData = anchorData.filter(d => parseInt(d.year) >= 2020 && parseInt(d.year) <= 2022);
+            else if (filter === 'Outcomes') filteredData = anchorData.filter(d => parseInt(d.year) >= 2023);
+
+            const getSharedAnnotations = (isDeltaChart = false) => {
+                const ann = {};
+                const startYear = parseInt(filteredData[0].year);
+                const endYear = parseInt(filteredData[filteredData.length - 1].year);
+
+                if (startYear <= 2019 && endYear >= 2020) {
+                    const idx = filteredData.findIndex(d => d.year === '2019');
+                    if (idx !== -1) {
+                        ann.preCovidLine = {
+                            type: 'line', xMin: idx + 0.5, xMax: idx + 0.5,
+                            borderColor: covidLineColor, borderWidth: 3,
+                            label: { display: true, content: 'PRE-COVID', backgroundColor: covidLineColor, color: 'white', font: { size: 10, weight: 'bold' }, padding: 4, yAdjust: -120 }
+                        };
+                    }
+                }
+                
+                if (startYear <= 2022 && endYear >= 2023) {
+                    const idx = filteredData.findIndex(d => d.year === '2022');
+                    if (idx !== -1) {
+                        ann.postCovidLine = {
+                            type: 'line', xMin: idx + 0.5, xMax: idx + 0.5,
+                            borderColor: covidLineColor, borderWidth: 3,
+                            label: { display: true, content: 'POST-COVID', backgroundColor: covidLineColor, color: 'white', font: { size: 10, weight: 'bold' }, padding: 4, yAdjust: -120 }
+                        };
+                    }
+                }
+
+                if (!isDeltaChart) {
+                    filteredData.forEach((d, idx) => {
+                        ann[`deltaLine_${idx}`] = { type: 'line', xMin: idx, xMax: idx, yMin: d.natl, yMax: d.mocupass, borderColor: deltaColor, borderWidth: 2, z: -1 };
+                    });
+                }
+                return ann;
+            };
+
+            const baseOptions = {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: textColor, font: { weight: 'bold' } } } },
+                scales: {
+                    x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                    y: { grid: { color: gridColor }, ticks: { color: textColor, callback: v => v + '%' } }
+                }
+            };
+
+            anchorChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: filteredData.map(d => d.year),
+                    datasets: [
+                        { label: 'MU COM Pass Rate', data: filteredData.map(d => d.mocupass), borderColor: isDarkMode ? '#22c55e' : '#10b981', backgroundColor: isDarkMode ? '#22c55e' : '#10b981', borderWidth: 3, tension: 0.3, pointRadius: 5 },
+                        { label: 'National Mean', data: filteredData.map(d => d.natl), borderColor: '#f43f5e', backgroundColor: '#f43f5e', borderWidth: 2, tension: 0.3, pointRadius: 2 }
+                    ]
+                },
+                options: { ...baseOptions, plugins: { ...baseOptions.plugins, annotation: { annotations: getSharedAnnotations(false) } }, scales: { ...baseOptions.scales, y: { ...baseOptions.scales.y, min: 85, max: 100 } } }
+            });
+
+            deltaChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: filteredData.map(d => d.year),
+                    datasets: [{ label: 'MU COM vs National Delta', data: filteredData.map(d => d.delta), backgroundColor: deltaColor, borderRadius: 4 }]
+                },
+                options: { ...baseOptions, plugins: { ...baseOptions.plugins, annotation: { annotations: getSharedAnnotations(true) } }, scales: { ...baseOptions.scales, y: { ...baseOptions.scales.y, min: 0, max: 10 } } }
+            });
+        }
+
+        function renderPipeline() {
+            const cols = { 'Foundational': document.getElementById('foundational-col'), 'Adaptive': document.getElementById('adaptive-col'), 'Outcomes': document.getElementById('outcomes-col') };
+            Object.values(cols).forEach(c => c.innerHTML = '');
+            const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+            courseData.forEach(course => {
+                const div = document.createElement('div');
+                const isTopThree = course.rank <= 3;
+                const barClass = course.role === 'Foundational' ? 'bar-foundational' : course.role === 'Adaptive' ? 'bar-adaptive' : 'bar-outcomes';
+                div.className = `pipeline-card ${isTopThree ? 'top-mark' : ''}`;
+                div.innerHTML = `
+                    ${isTopThree ? `<div class="medal-badge">${medals[course.rank]}</div>` : ''}
+                    <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-black tracking-widest text-white/60">${course.year}</span><span class="text-xs font-black ${isTopThree ? 'text-amber-400' : 'text-white'}">${course.score}%</span></div>
+                    <p class="text-sm font-bold leading-tight mb-3 text-white">${course.name}</p>
+                    <div class="h-2 w-full bar-track rounded-full overflow-hidden"><div class="h-full ${barClass} rounded-full" style="width: ${course.score}%"></div></div>`;
+                cols[course.role].appendChild(div);
+            });
+        }
+
+        function filterEra(era) {
+            document.querySelectorAll('.era-btn').forEach(btn => btn.classList.remove('active-era'));
+            
+            if (era === 'All') {
+                currentEraFilter = 'All';
+            } else {
+                currentEraFilter = era;
+                const activeBtn = document.getElementById(`btn-${era}`);
+                if (activeBtn) activeBtn.classList.add('active-era');
+            }
+            
+            initCharts(currentEraFilter);
+            // We NO LONGER call renderPipeline(era) here to keep courses static.
+        }
+
+        function openModal() {
+            const list = document.getElementById('cqiList');
+            list.innerHTML = cqiActions.map((item, idx) => `
+                <div class="flex gap-4 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <span class="text-xs font-bold text-purple-500 min-w-[20px]">${idx + 1}.</span>
+                    <div><span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-300">${item.category}</span><p class="text-sm font-medium">${item.action}</p></div>
+                </div>`).join('');
+            document.getElementById('cqiModal').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('cqiModal').style.display = 'none'; }
+        
+        window.onload = () => { 
+            initCharts('All'); 
+            renderPipeline(); // Initial static render
+        };
+    </script>
+</body>
+</html>
