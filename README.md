@@ -1,2 +1,2 @@
 # Dashboards
-MU COM
+MU COM Strategic Performance & CQI Dashboard
