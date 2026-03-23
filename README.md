@@ -1,2 +1,3 @@
 # Dashboards
-MU COM Strategic Performance & CQI Dashboard
+Institutional Effectiveness
+AY16-26 Longitudinal Analytics for CQI & Comprehensive Regulatory Compliance
